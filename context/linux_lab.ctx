@@ -1,0 +1,9 @@
+[main]
+BUILD_PATH = build/linux_lab
+VAGRANTFILE = src/linux-lab/Vagrantfile
+
+SUBST-vag_box_centos = centos/7
+SUBST-vag_box_ubuntu = ubuntu/bionic64
+SUBST-vag_box_ram_mb = 512
+SUBST-vag_box_vram_mb = 32
+SUBST-vag_box_cpu_count = 2

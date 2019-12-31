@@ -1,0 +1,28 @@
+[main]
+BUILD_PATH = build/ansible_lab
+VAGRANTFILE = src/ansible-lab/Vagrantfile
+
+# VAGRANT (GENERIC)
+SUBST-vag_box_windows   = windows-2019-amd64-datacenter
+SUBST-vag_box_ansible   = ansible/tower
+SUBST-vag_box_ubuntu    = ubuntu/bionic64
+SUBST-vag_box_vram_mb   = 32
+SUBST-vag_box_cpu_count = 2
+
+# VM SPECIFICATIONS
+SUBST-ram_linux_mb = 1024
+SUBST-ram_windows_mb = 2048
+
+# Network
+SUBST-ip_ansible    = 192.168.40.100
+SUBST-ip_ubuntu     = 192.168.40.101
+SUBST-ip_windows    = 192.168.40.102
+SUBST-ip_gateway    = 192.168.40.1
+SUBST-ip_dns        = 192.168.40.1
+
+# Docker (containers)
+SUBST-dock_ip_1 = 172.17.0.3
+SUBST-dock_ip_2 = 172.17.0.4
+
+# Other
+SUBST-ansible_user = ansible

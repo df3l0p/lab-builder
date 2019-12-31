@@ -1,0 +1,229 @@
+### BEGIN: configuration parameters ###
+# Splunk version
+SPK_VERSION = "{{spk_version}}"
+SPK_HASH = "{{spk_hash}}"
+# Vagrant base box to use
+BOX_DC_BASE = "{{vag_box_dc_name}}"
+BOX_SRV_BASE = "{{vag_box_srv_name}}"
+BOX_WKS_BASE = "{{vag_box_wks_name}}"
+WKS_NUMBER = {{wks_number}}
+# which host port to forward box SSH port to
+DOMAIN_NAME = "{{ad_domain_name}}"
+# Vagrant Network
+NET_IP_LOG = "{{log_ip}}"
+NET_IP_DC = "{{dc_ip}}"
+NET_IP_WEF = "{{wef_ip}}"
+NET_IP_WKS = "{{wks_base_ip}}"
+NET_DNS_DOMAIN = "{{dns_ip}}"
+## NOT TO CHANGE
+NET_IP_GATEWAY = "{{gw_ip}}"
+# amount of RAM for Vagrant box
+BOX_RAM_MB_DC = "{{dc_ram}}"
+BOX_RAM_MB_LOG = "{{log_ram}}"
+BOX_RAM_MB_WEF = "{{wef_ram}}"
+BOX_RAM_MB_WKS = "{{wks_ram}}"
+# amount of Video RAM
+BOX_VRAM_MB = "{{vag_box_vram_mb}}"
+# number of CPUs for Vagrant box
+BOX_CPU_COUNT = "{{vag_box_cpu_count}}"
+### END: configuration parameters ###
+
+Vagrant.configure("2") do |config|
+
+    config.vm.define "dc" do |cfg|
+      cfg.vm.box = BOX_DC_BASE
+      cfg.vm.hostname = "dc"
+      cfg.vm.boot_timeout = 600
+      # use the plaintext WinRM transport and force it to use basic authentication.
+      # NB this is needed because the default negotiate transport stops working
+      #    after the domain controller is installed.
+      #    see https://groups.google.com/forum/#!topic/vagrant-up/sZantuCM0q4
+      cfg.winrm.transport = :plaintext
+      cfg.vm.communicator = "winrm"
+      cfg.winrm.basic_auth_only = true
+      cfg.winrm.timeout = 300
+      cfg.winrm.retry_limit = 20
+      cfg.vm.network "private_network", ip: NET_IP_DC, gateway: NET_IP_GATEWAY
+
+      # Manual provisioning
+      cfg.vm.provision "gpupdate", run: "never", type: "shell", inline: "gpupdate.exe /force", privileged: false
+      
+      # Init provision
+      #cfg.vm.provision "shell", path: "res/scripts/fix-second-network.ps1", privileged: false, args: "-ip {{dc_ip}} -dns {{dns_ip}}"
+      cfg.vm.provision "init-domain", type: "shell", path: "res/scripts/provision.ps1", privileged: false, args: "-ip " + NET_IP_DC + " -domain "+ DOMAIN_NAME + " -domain_dns " + NET_DNS_DOMAIN + " -machineType dc -timezone UTC -keyboard fr-ch"
+      cfg.vm.provision "init-restart", type: "reload"
+      cfg.vm.provision "init-wait", type: "shell", path: "res/scripts/wait-forready.ps1"
+      cfg.vm.provision "init-check", type: "shell", path: "res/scripts/provision.ps1", privileged: false, args: "-ip " + NET_IP_DC + " -domain "+ DOMAIN_NAME + " -domain_dns " + NET_DNS_DOMAIN + " -machineType dc -timezone UTC -keyboard fr-ch"
+      cfg.vm.provision "init-ou", type: "shell", path: "res/scripts/configure-ou.ps1", privileged: false
+      cfg.vm.provision "init-users", type: "shell", path: "res/scripts/create-users.ps1", privileged: false
+      cfg.vm.provision "init-restart-finish", type: "reload"
+
+      # Complement provision
+      cfg.vm.provision "dc-wait", type: "shell", path: "res/scripts/wait-forready.ps1"
+      cfg.vm.provision "wef-setup", type: "shell", path: "res/scripts/wef_setup.ps1", privileged: false
+      cfg.vm.provision "wef-gpo-init", type: "shell", path: "res/scripts/wef_gpo_init.ps1", privileged: false
+      # Installing Sysmon
+      cfg.vm.provision "ansible" do |ansible|
+        ansible.compatibility_mode = "2.0"
+        ansible.playbook = "res/ansible/sysmon.yml"
+        ansible.host_vars = {
+          "dc" => {"ansible_winrm_scheme" => "http",
+                            "ansible_winrm_transport" => "basic"
+          }
+        }
+      end
+      cfg.vm.provision "logging-restart-finish", type: "reload"
+      
+      cfg.vm.provider "virtualbox" do |vb, override|
+        override.vm.box = BOX_DC_BASE + "-virtualbox"
+        vb.gui = true
+        vb.name = "dc." + DOMAIN_NAME
+        vb.default_nic_type = "82545EM"
+        vb.customize ["modifyvm", :id, "--memory", BOX_RAM_MB_DC]
+        vb.customize ["modifyvm", :id, "--cpus", BOX_CPU_COUNT]
+        vb.customize ["modifyvm", :id, "--vram", BOX_VRAM_MB]
+        vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
+        vb.customize ["modifyvm", :id, "--draganddrop", "bidirectional"]
+        vb.customize ["setextradata", "global", "GUI/SuppressMessages", "all" ]
+      end
+    end
+
+    config.vm.define "logger" do |cfg|
+      cfg.vm.box = "kalilinux/rolling-light"
+      cfg.vm.box_version = "{{vag_box_kal_version}}"
+      cfg.vm.hostname = "logger"
+      cfg.vm.boot_timeout = 300
+      cfg.vm.network "private_network", ip: NET_IP_LOG, gateway: NET_IP_GATEWAY, dns: NET_DNS_DOMAIN
+
+      # Manual provision
+
+      # Init provision
+      cfg.vm.provision "init-logger", type: "shell", path: "res/scripts/init_logger.sh", privileged: true, args: SPK_VERSION + " " + SPK_HASH
+
+      # Complement provision
+
+
+      cfg.vm.provider "virtualbox" do |vb, override|
+        vb.gui = false
+        vb.name = "logger." + DOMAIN_NAME
+        vb.customize ["modifyvm", :id, "--memory", BOX_RAM_MB_LOG]
+        vb.customize ["modifyvm", :id, "--cpus", BOX_CPU_COUNT]
+        vb.customize ["modifyvm", :id, "--vram", BOX_VRAM_MB]
+        vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
+        vb.customize ["modifyvm", :id, "--draganddrop", "bidirectional"]
+        vb.customize ["setextradata", "global", "GUI/SuppressMessages", "all" ]
+      end
+    end
+  
+    config.vm.define "wef" do |cfg|
+      cfg.vm.box = BOX_SRV_BASE
+      cfg.vm.hostname = "wef"
+      cfg.vm.boot_timeout = 600
+      cfg.vm.communicator = "winrm"
+      cfg.winrm.basic_auth_only = true
+      cfg.winrm.timeout = 300
+      cfg.winrm.retry_limit = 20
+      cfg.vm.network "private_network", ip: NET_IP_WEF, gateway: NET_IP_GATEWAY, dns: NET_DNS_DOMAIN
+
+      # Manual provision
+      cfg.vm.provision "sysprep", run: "never", type: "shell", path: "res/scripts/sysprep.bat", privileged: false
+      cfg.vm.provision "gpupdate", run: "never", type: "shell", inline: "gpupdate.exe /force", privileged: false
+
+      # Init provision
+      cfg.vm.provision "init-domain", type: "shell", path: "res/scripts/provision.ps1", privileged: false, args: "-ip " + NET_IP_WEF + " -domain "+ DOMAIN_NAME + " -domain_dns " + NET_DNS_DOMAIN + " -machineType server -timezone UTC -keyboard fr-ch"
+      cfg.vm.provision "init-restart", type: "reload"
+      cfg.vm.provision "init-check", type: "shell", path: "res/scripts/provision.ps1", privileged: false, args: "-ip " + NET_IP_WEF + " -domain "+ DOMAIN_NAME + " -domain_dns " + NET_DNS_DOMAIN + " -machineType server -timezone UTC -keyboard fr-ch"
+      cfg.vm.provision "init-restart-finish", type: "reload"
+      
+      # Complement provision
+      cfg.vm.provision "wef-init", type: "shell", path: "res/scripts/wef_init.ps1", privileged: false
+      cfg.vm.provision "wef-sub-init", type: "shell", path: "res/scripts/wef_subscriptions_init.ps1", privileged: false
+      cfg.vm.provision "wef-setup", type: "shell", path: "res/scripts/wef_setup.ps1", privileged: false
+      # Installing Sysmon
+      cfg.vm.provision "ansible" do |ansible|
+        ansible.compatibility_mode = "2.0"
+        ansible.playbook = "res/ansible/sysmon.yml"
+        ansible.host_vars = {
+          "wef" => {"ansible_winrm_scheme" => "http",
+                            "ansible_winrm_transport" => "basic"
+          }
+        }
+      end
+      cfg.vm.provision "splunk-setup", type: "shell", path: "res/scripts/Setup-splunk.ps1", privileged: false, args: "-version " + SPK_VERSION + " -versionHash " + SPK_HASH
+      cfg.vm.provision "wef-restart", type: "reload"
+      
+
+
+      cfg.vm.provider "virtualbox" do |vb, override|
+        override.vm.box = BOX_SRV_BASE + "-virtualbox"
+        vb.gui = true
+        vb.name = "wef." + DOMAIN_NAME
+        vb.default_nic_type = "82545EM"
+        vb.customize ["modifyvm", :id, "--memory", BOX_RAM_MB_WEF]
+        vb.customize ["modifyvm", :id, "--cpus", BOX_CPU_COUNT]
+        vb.customize ["modifyvm", :id, "--vram", BOX_VRAM_MB]
+        vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
+        vb.customize ["modifyvm", :id, "--draganddrop", "bidirectional"]
+        vb.customize ["setextradata", "global", "GUI/SuppressMessages", "all" ]
+        ## additional disk
+        #disk = File.join(File.dirname(File.expand_path(__FILE__)), BOX_ADDITIONAL_DISK_STORAGE_PATH, BOX_ADDITIONAL_DISK_NAME_BASE+".vdi")
+        #unless File.exist?(disk)
+        #  vb.customize ['createhd', '--filename', disk, '--variant', 'Standard', '--size', BOX_ADDITIONAL_DISK_SIZE_GB * 1024]
+        #end
+        #vb.customize ['storageattach', :id,  '--storagectl', 'IDE', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', disk]
+      end
+    end
+
+    (1..WKS_NUMBER).each do |i|
+      config.vm.define "win10-#{i}" do |cfg|
+        cfg.vm.box = BOX_WKS_BASE
+        cfg.vm.hostname = "win10-#{i}"
+        cfg.vm.boot_timeout = 600
+        cfg.vm.communicator = "winrm"
+        cfg.winrm.basic_auth_only = true
+        cfg.winrm.timeout = 600
+        cfg.winrm.retry_limit = 20
+        cfg.vm.network "private_network", ip: NET_IP_WKS + "#{i}", gateway: NET_IP_GATEWAY, dns: NET_DNS_DOMAIN
+
+        # Manual provision
+        cfg.vm.provision "sysprep", run: "never", type: "shell", path: "res/scripts/sysprep.bat", privileged: false
+        cfg.vm.provision "gpupdate", run: "never", type: "shell", inline: "gpupdate.exe /force", privileged: false
+
+        # Init provision
+        cfg.vm.provision "init-domain", type: "shell", path: "res/scripts/provision.ps1", privileged: false, args: "-ip " + NET_IP_WKS + "#{i}" + " -domain "+ DOMAIN_NAME + " -domain_dns " + NET_DNS_DOMAIN + " -machineType workstation -timezone UTC -keyboard fr-ch"
+        cfg.vm.provision "init-restart", type: "reload"
+        cfg.vm.provision "init-check", type: "shell", path: "res/scripts/provision.ps1", privileged: false, args: "-ip " + NET_IP_WKS + "#{i}" + " -domain "+ DOMAIN_NAME + " -domain_dns " + NET_DNS_DOMAIN + " -machineType workstation -timezone UTC -keyboard fr-ch"
+        cfg.vm.provision "init-restart-finish", type: "reload"
+        
+        # Complement provision
+        cfg.vm.provision "wef-setup", type: "shell", path: "res/scripts/wef_setup.ps1", privileged: false
+        # Installing Sysmon
+        cfg.vm.provision "ansible" do |ansible|
+          ansible.compatibility_mode = "2.0"
+          ansible.playbook = "res/ansible/sysmon.yml"
+          ansible.host_vars = {
+            "win10-#{i}" => {"ansible_winrm_scheme" => "http",
+                             "ansible_winrm_transport" => "basic"
+            }
+          }
+        end
+        cfg.vm.provision "update-zimmerman", type: "shell", path: "res/scripts/update-zimmermantools.ps1", privileged: false, args: "-Dest C:\\tools"
+        cfg.vm.provision "logging-restart-finish", type: "reload"
+
+
+        cfg.vm.provider "virtualbox" do |vb, override|
+          override.vm.box = BOX_WKS_BASE + "-virtualbox"
+          vb.gui = true
+          vb.name = "win10-#{i}." + DOMAIN_NAME
+          vb.default_nic_type = "82545EM"
+          vb.customize ["modifyvm", :id, "--memory", BOX_RAM_MB_WKS]
+          vb.customize ["modifyvm", :id, "--cpus", BOX_CPU_COUNT]
+          vb.customize ["modifyvm", :id, "--vram", BOX_VRAM_MB]
+          vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
+          vb.customize ["modifyvm", :id, "--draganddrop", "bidirectional"]
+          vb.customize ["setextradata", "global", "GUI/SuppressMessages", "all" ]
+        end
+      end
+    end
+  end
+  

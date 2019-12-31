@@ -1,0 +1,18 @@
+####################### 1 - Filters #####################
+
+## This prevents crond from overwhelming the logs.
+-a never,user -F subj_type=crond_t
+#-a never,exit -F arch=b32 -F exe=/usr/sbin/cron
+#-a never,exit -F arch=b64 -F exe=/usr/sbin/cron
+#-a never,exit -F arch=b32 -F exe=/usr/sbin/crond
+#-a never,exit -F arch=b64 -F exe=/usr/sbin/crond
+#-a never,exit -F arch=b32 -S adjtimex -F auid=unset -F uid=chrony -F subj_type=chrony_related_msg_32
+#-a never,exit -F arch=b64 -S adjtimex -F auid=unset -F uid=chrony -F subj_type=chrony_related_msg_64
+
+## Exclude message types which are not important for security
+#-a always,exclude -F msgtype=PATH
+-a always,exclude -F msgtype=SOCKADDR
+-a always,exclude -F msgtype=BPRM_FCAPS
+-a always,exclude -F msgtype=CRYPTO_KEY_USER
+-a always,exclude -F msgtype=MMAP
+-a always,exclude -F msgtype=OBJ_PID

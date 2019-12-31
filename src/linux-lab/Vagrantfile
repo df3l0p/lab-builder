@@ -1,0 +1,62 @@
+### BEGIN: configuration parameters ###
+LAB_NAME = "linux-lab_"
+# Vagrant base box to use
+BOX_CENTOS_BASE = "{{vag_box_centos}}"
+BOX_UBUNTU_BASE = "{{vag_box_ubuntu}}"
+# Vagrant Network
+# amount of RAM for Vagrant box
+BOX_RAM_MB_VM = "{{vag_box_ram_mb}}"
+# amount of Video RAM
+BOX_VRAM_MB = "{{vag_box_vram_mb}}"
+# number of CPUs for Vagrant box
+BOX_CPU_COUNT = "{{vag_box_cpu_count}}"
+### END: configuration parameters ###
+
+Vagrant.configure("2") do |config|
+  
+  config.vm.define "centos" do |cfg|
+    cfg.vm.box = BOX_CENTOS_BASE
+    cfg.vm.hostname = "centos"
+    cfg.vm.boot_timeout = 600
+
+    # Init provision
+    config.vm.provision "init-auditd", type: "shell", path: "res/scripts/init_auditd.sh"
+    config.vm.provision "install-auditbeat",run: "never", type: "shell", path: "res/scripts/install_auditbeat.sh"
+
+    # Complement provision
+
+    cfg.vm.provider "virtualbox" do |vb, override|
+      vb.gui = false
+      vb.name = LAB_NAME + "centos"
+      vb.default_nic_type = "82545EM"
+      vb.customize ["modifyvm", :id, "--memory", BOX_RAM_MB_VM]
+      vb.customize ["modifyvm", :id, "--cpus", BOX_CPU_COUNT]
+      vb.customize ["modifyvm", :id, "--vram", BOX_VRAM_MB]
+      vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
+      vb.customize ["setextradata", "global", "GUI/SuppressMessages", "all" ]
+    end
+  end
+
+  config.vm.define "ubuntu" do |cfg|
+    cfg.vm.box = BOX_UBUNTU_BASE
+    cfg.vm.hostname = "ubuntu"
+    cfg.vm.boot_timeout = 600
+
+    # Init provision
+    config.vm.provision "init-auditd", type: "shell", path: "res/scripts/init_auditd.sh"
+    config.vm.provision "install-auditbeat", run: "never", type: "shell", path: "res/scripts/install_auditbeat.sh"
+
+    # Complement provision
+
+    cfg.vm.provider "virtualbox" do |vb, override|
+      vb.gui = false
+      vb.name = LAB_NAME + "ubuntu"
+      vb.default_nic_type = "82545EM"
+      vb.customize ["modifyvm", :id, "--memory", BOX_RAM_MB_VM]
+      vb.customize ["modifyvm", :id, "--cpus", BOX_CPU_COUNT]
+      vb.customize ["modifyvm", :id, "--vram", BOX_VRAM_MB]
+      vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
+      vb.customize ["setextradata", "global", "GUI/SuppressMessages", "all" ]
+    end
+  end
+end

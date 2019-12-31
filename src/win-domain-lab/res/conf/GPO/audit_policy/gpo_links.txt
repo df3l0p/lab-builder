@@ -1,0 +1,2 @@
+OU=Domain Controllers,{{ad_ldap_path_root}}
+OU=Endpoints,OU=Lausanne,OU=CH,OU=Europe,{{ad_ldap_path_root}}

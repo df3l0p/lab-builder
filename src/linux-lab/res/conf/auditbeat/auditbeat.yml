@@ -1,0 +1,42 @@
+auditbeat.modules:
+- module: auditd
+  resolve_ids: true
+  failure_mode: silent
+  backlog_limit: 10240
+  rate_limit: 0
+  include_raw_message: false
+  include_warnings: false
+  backpressure_strategy: auto
+  # Load audit rules from separate files. Same format as audit.rules(7).
+  audit_rule_files: [ '${path.config}/audit.rules.d/*.conf' ]
+
+- module: file_integrity
+  paths:
+  - /bin
+  - /usr/bin
+  - /sbin
+  - /usr/sbin
+  - /etc
+  scan_at_start: true
+  scan_rate_per_sec: 50 MiB
+  max_file_size: 100 MiB
+  hash_types: [sha1]
+  recursive: false
+
+
+output.file:
+  path: "/var/log/auditbeat"
+  filename: auditbeat
+  rotate_every_kb: 10000
+  number_of_files: 7
+  permissions: 0600
+  codec.json:
+    pretty: false
+
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/auditbeat
+  name: auditbeat_internal
+  keepfiles: 7
+  permissions: 0644

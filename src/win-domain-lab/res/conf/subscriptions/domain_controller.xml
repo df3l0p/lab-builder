@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Subscription xmlns="http://schemas.microsoft.com/2006/03/windows/events/subscription">
+	<SubscriptionId>domain_controller</SubscriptionId>
+	<SubscriptionType>SourceInitiated</SubscriptionType>
+	<Description></Description>
+	<Enabled>true</Enabled>
+	<Uri>http://schemas.microsoft.com/wbem/wsman/1/windows/EventLog</Uri>
+	<ConfigurationMode>MinLatency</ConfigurationMode>
+	<Delivery Mode="Push">
+		<Batching>
+			<MaxLatencyTime>30000</MaxLatencyTime>
+		</Batching>
+		<PushSettings>
+			<Heartbeat Interval="900000"/>
+		</PushSettings>
+	</Delivery>
+	<Query>
+		<![CDATA[
+			<QueryList>
+				<Query Id="0">
+					<Select Path="Application">*</Select>
+					<Select Path="Security">*</Select>
+					<Select Path="System">*</Select>
+					<Select Path="Windows PowerShell">*</Select>
+					<Select Path="Microsoft-Windows-PowerShell/Operational">
+						*[System[EventID=4103 or EventID=4104]]
+					</Select>
+					<Select Path="Microsoft-Windows-WMI-Activity/Operational">
+						*[System[EventID=5857 or EventID=5858 or EventID=5859 or EventID=5860 or EventID=5861]]
+					</Select>
+					<Select Path='Microsoft-Windows-Sysmon/Operational'>
+                        *
+                    </Select>
+				</Query>
+			</QueryList>
+		]]>
+	</Query>
+	<ReadExistingEvents>false</ReadExistingEvents>
+	<TransportName>HTTP</TransportName>
+	<ContentFormat>Events</ContentFormat>
+	<Locale Language="en-US"/>
+	<LogFile>ForwardedEvents</LogFile>
+	<PublisherName></PublisherName>
+	<AllowedSourceNonDomainComputers></AllowedSourceNonDomainComputers>
+	<AllowedSourceDomainComputers>O:NSG:BAD:P(A;;GA;;;DD)S:</AllowedSourceDomainComputers>
+</Subscription>

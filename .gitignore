@@ -1,0 +1,4 @@
+.vscode
+.vagrant
+src/win-domain-lab/Vagrantfile
+build/

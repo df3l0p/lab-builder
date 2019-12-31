@@ -1,0 +1,13 @@
+################## 5 - Command execution ################
+
+## Log commands executed by non-root users under the root user context.
+-a always,exit -F arch=b32 -S execve -F auid!=0 -F auid!=4294967295 -F euid=0 -F key=root-commands
+-a always,exit -F arch=b64 -S execve -F auid!=0 -F auid!=4294967295 -F euid=0 -F key=root-commands
+
+## Log commands executed by non-root users under non-root user context.
+-a always,exit -F arch=b32 -S execve -F auid!=0 -F auid!=4294967295 -F euid!=0 -F key=user-commands
+-a always,exit -F arch=b64 -S execve -F auid!=0 -F auid!=4294967295 -F euid!=0 -F key=user-commands
+
+## Log commands executed by any user under any context.
+#-a always,exit -F arch=b32 -S execve -F key=system-commands
+#-a always,exit -F arch=b64 -S execve -F key=system-commands

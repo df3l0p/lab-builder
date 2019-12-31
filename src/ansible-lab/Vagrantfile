@@ -1,0 +1,101 @@
+### BEGIN: configuration parameters ###
+LAB_NAME = "ansible-lab-"
+# Vagrant base box to use
+BOX_ANSIBLE_TOWER = "{{vag_box_ansible}}"
+BOX_UBUNTU_BASE = "{{vag_box_ubuntu}}"
+BOX_WINDOWS_BASE = "{{vag_box_windows}}"
+# Vagrant Network
+NET_IP_ANS = "{{ip_ansible}}"
+NET_IP_UBU = "{{ip_ubuntu}}"
+NET_IP_WIN = "{{ip_windows}}"
+NET_IP_GAT = "{{ip_gateway}}"
+NET_IP_DNS = "{{ip_dns}}"
+# amount of RAM for Vagrant box
+BOX_RAM_MB_LINUX = "{{ram_linux_mb}}"
+BOX_RAM_MB_WINDOWS = "{{ram_windows_mb}}"
+# amount of Video RAM
+BOX_VRAM_MB = "{{vag_box_vram_mb}}"
+# number of CPUs for Vagrant box
+BOX_CPU_COUNT = "{{vag_box_cpu_count}}"
+### END: configuration parameters ###
+
+Vagrant.configure("2") do |config|
+  
+  config.vm.define "ansible" do |cfg|
+    cfg.vm.box = BOX_ANSIBLE_TOWER
+    cfg.vm.hostname = "ansible"
+    cfg.vm.boot_timeout = 600
+    cfg.vm.network "private_network", ip: NET_IP_ANS, gateway: NET_IP_GAT, dns: NET_IP_DNS
+
+    # Init provision
+    config.vm.provision "setup-ansible-user", type: "shell", path: "res/scripts/setup_ansible_user.sh"
+    config.vm.provision "setup-ansible-sshkeys", type: "shell", path: "res/scripts/setup_ansible_sshkeys.sh"
+
+    # Complement provision
+
+    cfg.vm.provider "virtualbox" do |vb, override|
+      vb.name = LAB_NAME + cfg.vm.hostname
+      vb.customize ["modifyvm", :id, "--memory", BOX_RAM_MB_LINUX]
+      vb.customize ["modifyvm", :id, "--cpus", BOX_CPU_COUNT]
+      vb.customize ["modifyvm", :id, "--vram", BOX_VRAM_MB]
+      vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
+      vb.customize ["modifyvm", :id, "--draganddrop", "bidirectional"]
+      vb.customize ["setextradata", "global", "GUI/SuppressMessages", "all" ]
+    end
+  end
+
+  config.vm.define "ubuntu" do |cfg|
+    cfg.vm.box = BOX_UBUNTU_BASE
+    cfg.vm.hostname = "ubuntu"
+    cfg.vm.boot_timeout = 600
+    cfg.vm.network "private_network", ip: NET_IP_UBU, gateway: NET_IP_GAT, dns: NET_IP_DNS
+
+    # Init provision
+    config.vm.provision "setup-ansible-user", type: "shell", path: "res/scripts/setup_ansible_user.sh"
+    config.vm.provision "setup-ansible-authkeys", type: "shell", path: "res/scripts/setup_ansible_authkeys.sh"
+
+
+    # Complement provision
+
+    cfg.vm.provider "virtualbox" do |vb, override|
+      vb.name = LAB_NAME + cfg.vm.hostname
+      vb.customize ["modifyvm", :id, "--memory", BOX_RAM_MB_LINUX]
+      vb.customize ["modifyvm", :id, "--cpus", BOX_CPU_COUNT]
+      vb.customize ["modifyvm", :id, "--vram", BOX_VRAM_MB]
+      vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
+      vb.customize ["setextradata", "global", "GUI/SuppressMessages", "all" ]
+    end
+  end
+
+  config.vm.define "windows" do |cfg|
+      cfg.vm.box = BOX_WINDOWS_BASE
+      cfg.vm.hostname = "windows"
+      cfg.vm.boot_timeout = 600
+      # use the plaintext WinRM transport and force it to use basic authentication.
+      # NB this is needed because the default negotiate transport stops working
+      #    after the domain controller is installed.
+      #    see https://groups.google.com/forum/#!topic/vagrant-up/sZantuCM0q4
+      cfg.winrm.transport = :plaintext
+      cfg.vm.communicator = "winrm"
+      cfg.winrm.basic_auth_only = true
+      cfg.winrm.timeout = 300
+      cfg.winrm.retry_limit = 20
+      cfg.vm.network "private_network", ip: NET_IP_WIN, gateway: NET_IP_GAT, dns: NET_IP_DNS
+
+      # Init provision
+      #cfg.vm.provision "shell", path: "res/scripts/fix-second-network.ps1", privileged: false, args: "-ip {{dc_ip}} -dns {{dns_ip}}"
+      
+      
+      cfg.vm.provider "virtualbox" do |vb, override|
+        override.vm.box = BOX_WINDOWS_BASE + "-virtualbox"
+        vb.gui = true
+        vb.name = LAB_NAME + cfg.vm.hostname
+        vb.customize ["modifyvm", :id, "--memory", BOX_RAM_MB_WINDOWS]
+        vb.customize ["modifyvm", :id, "--cpus", BOX_CPU_COUNT]
+        vb.customize ["modifyvm", :id, "--vram", BOX_VRAM_MB]
+        vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
+        vb.customize ["modifyvm", :id, "--draganddrop", "bidirectional"]
+        vb.customize ["setextradata", "global", "GUI/SuppressMessages", "all" ]
+      end
+    end
+end

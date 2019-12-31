@@ -1,0 +1,80 @@
+### BEGIN: configuration parameters ###
+LAB_NAME = "forensic-lab_"
+# Vagrant base box to use
+#BOX_DC_BASE = "windows-2016-amd64-virtualbox"
+BOX_SIFT_BASE = "ifzen_c/foros"
+BOX_WINDOWS_BASE = "windows-10-amd64-enterprise"
+# Vagrant Network
+# amount of RAM for Vagrant box
+BOX_RAM_MB_SIFT = "2048"
+BOX_RAM_MB_WIN = "4096"
+# amount of Video RAM
+BOX_VRAM_MB = "32"
+# number of CPUs for Vagrant box
+BOX_CPU_COUNT = "2"
+### END: configuration parameters ###
+
+Vagrant.configure("2") do |config|
+
+  config.vm.define "sift" do |cfg|
+    cfg.vm.box = BOX_SIFT_BASE
+    cfg.vm.hostname = "sift"
+    cfg.vm.boot_timeout = 600
+
+    # Init provision
+    config.vm.provision "upgrade-sift", type: "shell", path: "res/scripts/upgrade_sift.sh"
+    cfg.vm.provision "init-restart-finish", type: "reload"
+
+    # Complement provision
+
+    cfg.vm.provider "virtualbox" do |vb, override|
+      vb.gui = true
+      vb.name = LAB_NAME + "sift"
+      vb.default_nic_type = "82545EM"
+      vb.customize ["modifyvm", :id, "--memory", BOX_RAM_MB_SIFT]
+      vb.customize ["modifyvm", :id, "--cpus", BOX_CPU_COUNT]
+      vb.customize ["modifyvm", :id, "--vram", BOX_VRAM_MB]
+      vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
+      vb.customize ["modifyvm", :id, "--draganddrop", "bidirectional"]
+      vb.customize ["setextradata", "global", "GUI/SuppressMessages", "all" ]
+    end
+  end
+
+  config.vm.define "win10" do |cfg|
+    cfg.vm.box = BOX_WINDOWS_BASE
+    cfg.vm.hostname = "win10"
+    cfg.vm.boot_timeout = 600
+    cfg.vm.communicator = "winrm"
+    cfg.winrm.basic_auth_only = true
+    cfg.winrm.timeout = 600
+    cfg.winrm.retry_limit = 20
+
+    # Manual provision
+    cfg.vm.provision "install-sift", run: "never", type: "shell", path: "res/scripts/install-sift.sh", privileged: false
+
+    # Init provision
+    cfg.vm.provision "init-windows", type: "shell", path: "res/scripts/Setup-windows.ps1", privileged: false
+    cfg.vm.provision "update-zimmerman", type: "shell", path: "res/scripts/update-zimmermantools.ps1", privileged: false, args: "-Dest C:\\tools "
+    cfg.vm.provision "init-WSL", type: "shell", path: "res/scripts/Setup-WSL.ps1", privileged: false
+    cfg.vm.provision "init-restart-WSL", type: "reload"
+    cfg.vm.provision "install-ubuntu", type: "shell", path: "res/scripts/Setup-ubuntu.ps1", privileged: false
+    cfg.vm.provision "install-flare", type: "shell", path: "res/scripts/install-flare-os.ps1", privileged: false, args: "-password vagrant"
+    
+    
+    # Complement provision
+
+
+    cfg.vm.provider "virtualbox" do |vb, override|
+      override.vm.box = BOX_WINDOWS_BASE + "-virtualbox"
+      vb.gui = true
+      vb.name = LAB_NAME + "win10"
+      vb.default_nic_type = "82545EM"
+      vb.customize ["modifyvm", :id, "--memory", BOX_RAM_MB_WIN]
+      vb.customize ["modifyvm", :id, "--cpus", BOX_CPU_COUNT]
+      vb.customize ["modifyvm", :id, "--vram", BOX_VRAM_MB]
+      vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
+      vb.customize ["modifyvm", :id, "--draganddrop", "bidirectional"]
+      vb.customize ["setextradata", "global", "GUI/SuppressMessages", "all" ]
+    end
+  end
+end

@@ -1,0 +1,40 @@
+[main]
+BUILD_PATH = build/win_domain_lab
+VAGRANTFILE = src/win-domain-lab/Vagrantfile.monitoring-lab
+
+# VAGRANT (GENERIC)
+SUBST-vag_box_dc_name = windows-2019-amd64-datacenter
+SUBST-vag_box_srv_name = windows-2019-amd64-datacenter
+SUBST-vag_box_wks_name = windows-10-amd64-enterprise
+SUBST-vag_box_kal_version = 2019.3.0
+SUBST-vag_box_vram_mb = 32
+SUBST-vag_box_cpu_count = 2
+
+# WINDOWS AD 
+SUBST-ad_domain_name = wintest.local
+SUBST-ad_legacy_domain_name = WINTEST # case sensitive not important but recommended
+SUBST-ad_ldap_path_root = DC=wintest,DC=local
+
+# Splunk version
+SUBST-spk_version = 7.3.3
+SUBST-spk_hash = 7af3758d0d5e
+
+# VM SPECIFICATIONS
+SUBST-dns_ip = 192.168.39.102
+
+SUBST-dc_ip = 192.168.39.102
+SUBST-dc_ram = 2560
+
+SUBST-log_ip = 192.168.39.105
+SUBST-log_ram = 2048
+
+SUBST-wef_ip = 192.168.39.103
+SUBST-wef_ram = 2048
+
+SUBST-wks_number = 1
+SUBST-wks_base_ip = 192.168.39.11
+SUBST-wks_ram = 2048
+
+SUBST-gw_ip = 192.168.39.1
+
+
