@@ -8,7 +8,21 @@ This lab has been created to test attack detection using Windows logs but can be
 
 ## Requirements
 
-This labs requires the boxes from the [Build Boxes](https://github.com/df3l0p/build-boxes) project for the Windows part, and an Internet connection for the download of the Kali box and the different tools at build time.
+This labs requires
+* the boxes from the [Build Boxes](https://github.com/df3l0p/build-boxes) project for the Windows part
+* an Internet connection for the download of the Kali box and the different tools at build time.
+* Vagrant plugins
+```bash
+vagrant plugin install vagrant-reload
+```
+* Ansible configured with the following Python so that your host configures the hosts using winrm 
+```bash
+# to install ansible
+python3 -m pip install ansible # to install ansible compatible with python3.
+which ansible # check it's resolved and you have the right python version associated.
+# to install the plugin
+pip install pywinrm # https://access.redhat.com/solutions/3356681
+```
 
 ## Features
 
