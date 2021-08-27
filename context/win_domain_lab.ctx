@@ -16,8 +16,8 @@ SUBST-ad_legacy_domain_name = WINTEST # case sensitive not important but recomme
 SUBST-ad_ldap_path_root = DC=wintest,DC=local
 
 # Splunk version
-SUBST-spk_version = 8.2.2
-SUBST-spk_hash = 87344edfcdb4
+SUBST-spk_version = 7.3.3
+SUBST-spk_hash = 7af3758d0d5e
 
 # VM SPECIFICATIONS
 SUBST-dns_ip = 192.168.39.102
