@@ -3,10 +3,10 @@ BUILD_PATH = build/win_domain_lab
 VAGRANTFILE = src/win-domain-lab/Vagrantfile.monitoring-lab
 
 # VAGRANT (GENERIC)
-SUBST-vag_box_dc_name = windows-2019-amd64-datacenter
-SUBST-vag_box_srv_name = windows-2019-amd64-datacenter
-SUBST-vag_box_wks_name = windows-10-amd64-enterprise
-SUBST-vag_box_kal_version = 2019.3.0
+SUBST-vag_box_dc_name = windows-2019-amd64
+SUBST-vag_box_srv_name = windows-2019-amd64
+SUBST-vag_box_wks_name = windows-10-amd64
+SUBST-vag_box_kal_version = 2021.1.0
 SUBST-vag_box_vram_mb = 32
 SUBST-vag_box_cpu_count = 2
 
